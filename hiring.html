@@ -108,15 +108,124 @@
                   <div class="container">
                     <div id="form-container">
                       <!-- Formester Embed -->
-                          <script src="https://osrqajyl.formester.com/widget/standard.js" type="module"></script>
+<!-- ✅ STEP 1: Basic Info Form -->
+<div id="step1" class="kyc-step">
+  <h2>Let’s get started</h2>
+  <form id="userInfoForm">
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" class="form-control" id="fullName" required />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" class="form-control" id="email" required />
+    </div>
+    <div class="form-group">
+      <label>Country</label>
+      <select class="form-control" id="country" required>
+        <option value="">Select...</option>
+        <option value="US">United States</option>
+        <option value="CA">Canada</option>
+        <option value="GB">United Kingdom</option>
+        <!-- Add more as needed -->
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Continue to ID Verification</button>
+  </form>
+</div>
 
-                                <formester-standard-form
-                                      set-auto-height="true"
-                                      height="100%"
-                                      width="100%"
-                                      id="bDfu2Yv2G"
-                                      url="https://osrqajyl.formester.com/f/bDfu2Yv2G"
-                                ></formester-standard-form>
+<!-- ✅ STEP 2: Vouched KYC Widget (hidden until needed) -->
+<div id="step2" class="kyc-step" style="display:none; text-align:center;">
+  <h2>Verify Your Identity</h2>
+  <p>We’ll ask for your ID and a quick selfie. Takes <1 minute.</p>
+  <button id="startVouched" class="btn btn-success btn-lg">Start Verification</button>
+</div>
+
+<!-- ✅ STEP 3: Loading/Success -->
+<div id="step3" class="kyc-step" style="display:none; text-align:center;">
+  <div id="loading">
+    <h3>Completing verification...</h3>
+    <div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>
+  </div>
+  <div id="success" style="display:none;">
+    <h3>✅ Verification Approved!</h3>
+    <p>Redirecting to review...</p>
+  </div>
+</div>
+
+<!-- ✅ Load Vouched SDK -->
+<script src="https://cdn.vouched.id/vouched-sdk.js"></script>
+
+<script>
+  // 🔑 Replace with your real Vouched Publishable Key (from dashboard)
+  const VOUCHED_API_KEY = "wvh#uiE9cMbpa-Nic.zQ7myvyMd7M~"; // ← Get this from Vouched dashboard
+
+  // Store user data
+  let userData = {};
+
+  // STEP 1: Capture basic info
+  document.getElementById("userInfoForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    userData = {
+      name: document.getElementById("fullName").value,
+      email: document.getElementById("email").value,
+      country: document.getElementById("country").value
+    };
+    document.getElementById("step1").style.display = "none";
+    document.getElementById("step2").style.display = "block";
+  });
+
+  // STEP 2: Launch Vouched
+  document.getElementById("startVouched").onclick = () => {
+    document.getElementById("step2").style.display = "none";
+    document.getElementById("step3").style.display = "block";
+    document.getElementById("success").style.display = "none";
+
+    window.Vouched.start({
+      apiKey: VOUCHED_API_KEY,
+      jobType: "identity",
+      applicant: {
+        firstName: userData.name.split(" ")[0] || "",
+        lastName: userData.name.split(" ").slice(1).join(" ") || "",
+        email: userData.email,
+        country: userData.country
+      },
+      onCompleted: (result) => {
+        console.log("KYC Result:", result);
+        
+        if (result.passed) {
+          // ✅ Success → save data (optional) & redirect
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("success").style.display = "block";
+          
+          // Optional: send to your DB (e.g., Supabase, Firebase)
+          // fetch("/api/save-kyc", { method: "POST", body: JSON.stringify({...userData, kyc: result}) });
+
+          // → Redirect after 2 seconds
+          setTimeout(() => {
+            window.location.href = "review.html?status=approved&email=" + encodeURIComponent(userData.email);
+          }, 2000);
+        } else {
+          // ❌ Failed → show error & allow retry
+          alert("Verification failed: " + (result.errorMessage || "Please try again."));
+          document.getElementById("step3").style.display = "none";
+          document.getElementById("step2").style.display = "block";
+        }
+      },
+      onError: (error) => {
+        console.error("Vouched Error:", error);
+        alert("An error occurred. Please try again.");
+        document.getElementById("step3").style.display = "none";
+        document.getElementById("step2").style.display = "block";
+      }
+    });
+  };
+</script>
+
+<style>
+  .kyc-step { max-width: 600px; margin: 2rem auto; padding: 1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+  .btn { margin-top: 1rem; }
+</style>
                     </div>
                   </div>
                 </section>
